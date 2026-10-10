@@ -66,6 +66,23 @@ def test_runeberg_fetches_only_the_stories_pages():
                            "https://runeberg.org/bok/0006.html"]
 
 
+def test_runeberg_running_headers_removed_before_merging():
+    f = runeberg_fetcher()
+    f.pages["https://runeberg.org/bok/0006.html"] = page(
+        "KRISTUSLEGENDER\n\n8. — La g er lö fy Kristuslegender. J23 KR\n\nfortsätter på nästa sida.\n")
+    src = runeberg.fetch("https://runeberg.org/bok/0005.html", f)
+    assert src.sections[0][1][1] == "Sista stycket börjar här och fortsätter på nästa sida."
+    assert not any("KRISTUS" in p.upper() for p in src.sections[0][1])
+
+
+def test_is_running_header():
+    assert runeberg.is_running_header("KRISTUSLEGENDER")
+    assert runeberg.is_running_header("FÄGEL RÖDBRÖST")
+    assert not runeberg.is_running_header("HOSIANNA!")
+    assert not runeberg.is_running_header("Det var en gång en fågel.", "Kristuslegender")
+    assert runeberg.is_running_header("12 Kristuslegender", "Kristuslegender")
+
+
 def test_runeberg_rejects_non_story_start_and_bad_urls():
     with pytest.raises(FetchError):
         runeberg.fetch("https://runeberg.org/bok/0006.html", runeberg_fetcher())
@@ -78,6 +95,15 @@ def test_parse_index_titles_and_pages():
     story = next(e for e in entries if e["first"] == "0005")
     assert story["title"] == "Den heliga natten" and story["pages"] == ["0005", "0006"]
     assert next(e for e in entries if e["first"] == "0001")["pages"] == ["0001"]
+
+
+def test_strip_title_variants():
+    t = "Fågel Rödbröst"
+    assert runeberg.strip_title(["FÅGEL RÖDBRÖST.", "Text."], t) == ["Text."]
+    assert runeberg.strip_title(["FÅGEL RÖDBRÖST. Det var en gång.", "Mer."], t) == ["Det var en gång.", "Mer."]
+    assert runeberg.strip_title(["Fågel Rödbröst var liten."], t) == ["Fågel Rödbröst var liten."]  # not a printed title
+    assert runeberg.strip_title(["Annat."], t) == ["Annat."]
+    assert runeberg.strip_title(["FÅGEL RÖDBRÖST", "FÅGEL RÖDBRÖST.", "Text."], t) == ["Text."]  # printed twice
 
 
 def test_decode_html_honours_declared_charset():

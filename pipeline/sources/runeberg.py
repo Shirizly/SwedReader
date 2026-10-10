@@ -41,8 +41,16 @@ def parse_index(index_html):
     return entries
 
 
-def page_paragraphs(page_html):
-    """Paragraphs of OCR text on one page (lines re-flowed, line-end hyphens removed)."""
+def is_running_header(para, work=""):
+    """Page furniture: short all-caps lines (book/story title echoes) or short lines naming the book."""
+    words = para.split()
+    if len(words) <= 6 and para == para.upper() and re.search(r"[A-ZÅÄÖ]{3}", para) and not re.search(r"[!?”\"»«]", para):
+        return True
+    return bool(work) and len(words) < 16 and work.lower() in para.lower()
+
+
+def page_paragraphs(page_html, work=""):
+    """Paragraphs of OCR text on one page (lines re-flowed, line-end hyphens removed, headers dropped)."""
     m = TEXT_BLOCK.search(page_html)
     if not m:
         raise FetchError("No OCR text block found on page")
@@ -55,8 +63,9 @@ def page_paragraphs(page_html):
         para = lines[0]
         for ln in lines[1:]:
             para = join_lines(para, ln)
-        if not re.fullmatch(r"[\divxlc.\s]+", para, re.I):  # bare page numbers
-            paragraphs.append(para)
+        if re.fullmatch(r"[\divxlc.\s]+", para, re.I) or is_running_header(para, work):  # page numbers, headers
+            continue
+        paragraphs.append(para)
     return paragraphs
 
 
@@ -75,6 +84,21 @@ def _squash(s):
     return re.sub(r"\W+", "", s).lower()
 
 
+def strip_title(paragraphs, title):
+    """Drop printed (uppercase) title lines at the start, whether on their own or running into the first
+    paragraph. The title may be printed more than once (heading plus opening line)."""
+    pattern = r"\s+".join(re.escape(w) for w in title.split()) + r"\.?\s*"
+    while paragraphs:
+        m = re.match(pattern, paragraphs[0], re.I)
+        if not (m and m.group(0).strip(" .").isupper()):
+            break
+        rest = paragraphs[0][m.end():].strip()
+        if rest:
+            return [rest] + paragraphs[1:]
+        paragraphs = paragraphs[1:]
+    return paragraphs
+
+
 def read_metadata(page_html):
     def meta(name):
         m = re.search(rf'name="{name}"\s*content="([^"]*)"', page_html)
@@ -90,12 +114,10 @@ def fetch(url, fetcher=None):
     if story is None:
         raise FetchError(f"Page {first} is not the first page of a story in {book!r}")
     pages_html = [decode_html(fetcher.get_bytes(f"{BASE}/{book}/{p}.html")) for p in story["pages"]]
-    paragraphs = merge_pages([page_paragraphs(p) for p in pages_html])
-    if paragraphs and _squash(paragraphs[0]) == _squash(story["title"]):
-        paragraphs = paragraphs[1:]  # the printed title line
+    meta = read_metadata(pages_html[0])
+    paragraphs = strip_title(merge_pages([page_paragraphs(p, meta["work"]) for p in pages_html]), story["title"])
     if not paragraphs:
         raise FetchError(f"No text found for story {story['title']!r}")
-    meta = read_metadata(pages_html[0])
     author = meta["author"]
     title = f"{story['title']} ({author})" if author else story["title"]
     work = meta["work"] + (f" ({meta['year']})" if meta["year"] else "") if meta["work"] else ""

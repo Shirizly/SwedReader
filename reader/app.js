@@ -135,7 +135,7 @@ function renderDocument(d) {
   }
   const att = $("attribution");
   att.replaceChildren();
-  att.append(document.createTextNode(`Source: ${d.attribution || d.source_url || ""}. Licence: ${d.license || "unknown"}. Words and sentences were tokenized and machine-translated. `));
+  att.append(document.createTextNode(`Source: ${(d.attribution || d.source_url || "").replace(/[.\s]+$/, "")}. Licence: ${d.license || "unknown"}. Words and sentences were tokenized and machine-translated. `));
   for (const [label, url] of [["Original", d.source_url], ["History", d.history_url], ["Licence text", d.license_url]]) {
     if (url && /^https?:\/\//.test(url)) {
       att.append(el("a", { href: url, rel: "noopener" }, label), document.createTextNode(" "));
