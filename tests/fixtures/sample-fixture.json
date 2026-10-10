@@ -1,0 +1,109 @@
+{
+  "id": "sample-fixture",
+  "title": "Exempeltext (hand-made fixture)",
+  "source_url": "https://example.org/fixture",
+  "source_domain": "example.org",
+  "lane": "public",
+  "retrieved_at": "2026-10-10T12:00:00+02:00",
+  "language_pair": "sv-en",
+  "word_count": 24,
+  "attribution": "Hand-written test fixture",
+  "license": "public-domain",
+  "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "history_url": "",
+  "translator": "fixture",
+  "glossary": {
+    "bil": ["car"],
+    "gata": ["street", "road"],
+    "huvudstad": ["capital city"]
+  },
+  "paragraphs": [
+    {
+      "sentences": [
+        {
+          "id": "s0",
+          "text": "Stockholm är Sveriges huvudstad.",
+          "translation": "Stockholm is Sweden's capital.",
+          "tokens": [
+            {"text": "Stockholm", "lemma": "Stockholm", "is_word": true, "ws": " ", "in_context": "Stockholm"},
+            {"text": "är", "lemma": "vara", "is_word": true, "ws": " ", "in_context": "is"},
+            {"text": "Sveriges", "lemma": "Sverige", "is_word": true, "ws": " ", "in_context": "Sweden's"},
+            {"text": "huvudstad", "lemma": "huvudstad", "is_word": true, "ws": "", "in_context": "capital"},
+            {"text": ".", "lemma": ".", "is_word": false, "ws": ""}
+          ],
+          "groups": []
+        },
+        {
+          "id": "s1",
+          "text": "Idag bor jag i Stockholm.",
+          "translation": "Today I live in Stockholm.",
+          "tokens": [
+            {"text": "Idag", "lemma": "idag", "is_word": true, "ws": " ", "in_context": "Today"},
+            {"text": "bor", "lemma": "bo", "is_word": true, "ws": " ", "in_context": "live"},
+            {"text": "jag", "lemma": "jag", "is_word": true, "ws": " ", "in_context": "I"},
+            {"text": "i", "lemma": "i", "is_word": true, "ws": " ", "in_context": "in"},
+            {"text": "Stockholm", "lemma": "Stockholm", "is_word": true, "ws": "", "in_context": "Stockholm"},
+            {"text": ".", "lemma": ".", "is_word": false, "ws": ""}
+          ],
+          "groups": []
+        }
+      ]
+    },
+    {
+      "sentences": [
+        {
+          "id": "s2",
+          "text": "Bilen står på gatan.",
+          "translation": "The car is standing on the street.",
+          "tokens": [
+            {"text": "Bilen", "lemma": "bil", "is_word": true, "ws": " ", "in_context": "The car"},
+            {"text": "står", "lemma": "stå", "is_word": true, "ws": " ", "in_context": "is standing"},
+            {"text": "på", "lemma": "på", "is_word": true, "ws": " ", "in_context": "on"},
+            {"text": "gatan", "lemma": "gata", "is_word": true, "ws": "", "in_context": "the street"},
+            {"text": ".", "lemma": ".", "is_word": false, "ws": " "}
+          ],
+          "groups": []
+        },
+        {
+          "id": "s3",
+          "text": "En bil kör förbi.",
+          "translation": "A car drives past.",
+          "tokens": [
+            {"text": "En", "lemma": "en", "is_word": true, "ws": " ", "in_context": "A"},
+            {"text": "bil", "lemma": "bil", "is_word": true, "ws": " ", "in_context": "car"},
+            {"text": "kör", "lemma": "köra", "is_word": true, "ws": " ", "in_context": "drives"},
+            {"text": "förbi", "lemma": "förbi", "is_word": true, "ws": "", "in_context": "past"},
+            {"text": ".", "lemma": ".", "is_word": false, "ws": " "}
+          ],
+          "groups": []
+        },
+        {
+          "id": "s4",
+          "text": "Han gav upp.",
+          "translation": "He gave up.",
+          "tokens": [
+            {"text": "Han", "lemma": "han", "is_word": true, "ws": " ", "in_context": "He"},
+            {"text": "gav", "lemma": "ge", "is_word": true, "ws": " "},
+            {"text": "upp", "lemma": "upp", "is_word": true, "ws": ""},
+            {"text": ".", "lemma": ".", "is_word": false, "ws": " "}
+          ],
+          "groups": [
+            {"token_ids": [1, 2], "in_context": "gave up"}
+          ]
+        },
+        {
+          "id": "s5",
+          "text": "Tågstationen är stor.",
+          "translation": "The train station is big.",
+          "tokens": [
+            {"text": "Tågstationen", "lemma": "tågstation", "is_word": true, "ws": " ", "in_context": "The train station"},
+            {"text": "är", "lemma": "vara", "is_word": true, "ws": " ", "in_context": "is"},
+            {"text": "stor", "lemma": "stor", "is_word": true, "ws": ""},
+            {"text": ".", "lemma": ".", "is_word": false, "ws": ""}
+          ],
+          "groups": []
+        }
+      ]
+    }
+  ]
+}

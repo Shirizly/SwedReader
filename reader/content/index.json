@@ -1,0 +1,11 @@
+{
+ "documents": [
+  {
+   "id": "sv-wikipedia-org-wiki-stockholm",
+   "title": "Stockholm",
+   "path": "content/sv-wikipedia-org-wiki-stockholm.json",
+   "lane": "public",
+   "word_count": 5504
+  }
+ ]
+}

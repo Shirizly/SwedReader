@@ -1,0 +1,14 @@
+# Source lanes. A domain matches itself and its subdomains.
+# Anything not listed is treated as private (default-deny).
+public:
+  - domain: wikipedia.org
+    license: CC-BY-SA-4.0
+    license_url: https://creativecommons.org/licenses/by-sa/4.0/
+    attribution: Wikipedia contributors (text under CC BY-SA 4.0; tokenized and machine-translated here)
+  - domain: runeberg.org
+    license: public-domain
+    license_url: https://creativecommons.org/publicdomain/mark/1.0/
+    attribution: Project Runeberg (public domain)
+private:
+  - domain: 8sidor.se
+  - domain: svt.se

@@ -1,0 +1,8 @@
+# Private lane: never committed or published.
+data/private/
+
+# Python / tooling
+__pycache__/
+*.pyc
+.pytest_cache/
+dict.db

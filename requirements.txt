@@ -1,0 +1,9 @@
+requests==2.34.2
+pyyaml==6.0.3
+jsonschema==4.26.0
+pytest==9.1.1
+spacy==3.8.16
+transformers==5.19.0
+sentencepiece==0.2.2
+torch==2.14.1
+# Swedish spaCy model: python -m spacy download sv_core_news_sm  (3.8.0)

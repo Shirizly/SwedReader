@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="sv">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Swedish Reader</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <label>Text <select id="doc-select"></select></label>
+    <label><input type="checkbox" id="show-all"> Show all translations</label>
+  </header>
+  <main>
+    <div id="error" role="alert" hidden></div>
+    <h1 id="doc-title"></h1>
+    <article id="text" lang="sv"></article>
+    <footer id="attribution"></footer>
+  </main>
+  <aside id="panel" hidden aria-live="polite"></aside>
+  <script src="app.js"></script>
+</body>
+</html>
