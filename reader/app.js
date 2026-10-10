@@ -48,30 +48,36 @@ async function loadIndex() {
 function clearActive() {
   activeEls.forEach((e) => e.classList.remove("active", "in-group"));
   activeEls = [];
-  document.querySelectorAll(".sentence.active").forEach((e) => e.classList.remove("active"));
+  document.querySelectorAll(".sentence-hl").forEach((e) => e.classList.remove("sentence-hl"));
 }
 
-function renderPanel(sentence, token, group) {
+function renderPanel(sentence, sentenceEl, token, group) {
   const panel = $("panel");
   panel.replaceChildren();
-  panel.append(el("h2", {}, token.text));
-  if (token.lemma && token.lemma !== token.text) {
+  const glosses = (doc.glossary && doc.glossary[token.lemma]) || [];
+  const meaning = (group ? group.in_context : token.in_context) || glosses.join(", ");
+  panel.append(meaning
+    ? el("p", { className: "meaning" }, meaning)
+    : el("p", { className: "muted" }, "No translation available."));
+  if (token.lemma && token.lemma.toLowerCase() !== token.text.toLowerCase()) {
     panel.append(el("p", { className: "muted" }, "Base form: " + token.lemma));
   }
-  const meaning = group ? group.in_context : token.in_context;
-  const glosses = (doc.glossary && doc.glossary[token.lemma]) || [];
-  if (meaning) {
-    const label = group
-      ? "In this sentence (" + group.token_ids.map((i) => sentence.tokens[i].text).join(" ") + "): "
-      : "In this sentence: ";
-    panel.append(el("p", {}, label + meaning + " (machine-aligned)"));
+  if (glosses.length && (group ? group.in_context : token.in_context)) {
+    panel.append(el("p", { className: "muted" }, "Dictionary: " + glosses.join(", ")));
   }
-  if (glosses.length) panel.append(el("p", {}, "Dictionary: " + glosses.join(", ")));
-  if (!meaning && !glosses.length) panel.append(el("p", { className: "muted" }, "No entry for this word."));
-  panel.append(el("p", { className: "muted" }, "Sentence translation: " + sentence.translation));
-  const close = el("button", { type: "button" }, "Close");
+
+  const trBox = el("p", { className: "sentence-translation" }, sentence.translation);
+  trBox.hidden = true;
+  const toggle = el("button", { type: "button" }, "Show sentence translation");
+  toggle.addEventListener("click", () => {
+    const show = trBox.hidden;
+    trBox.hidden = !show;
+    sentenceEl.classList.toggle("sentence-hl", show);
+    toggle.textContent = show ? "Hide sentence translation" : "Show sentence translation";
+  });
+  const close = el("button", { type: "button", className: "close" }, "Close");
   close.addEventListener("click", closePanel);
-  panel.append(close);
+  panel.append(toggle, trBox, close);
   panel.hidden = false;
 }
 
@@ -89,8 +95,7 @@ function selectWord(sentence, sentenceEl, index, tokenEls) {
     tokenEls[i].classList.add(group ? "in-group" : "active");
     activeEls.push(tokenEls[i]);
   }
-  sentenceEl.classList.add("active");
-  renderPanel(sentence, token, group);
+  renderPanel(sentence, sentenceEl, token, group);
 }
 
 function renderSentence(sentence) {
@@ -112,12 +117,7 @@ function renderSentence(sentence) {
     }
     if (t.ws) sEl.append(document.createTextNode(t.ws));
   });
-  const tr = el("span", { className: "sentence-tr" }, sentence.translation);
-  tr.hidden = !$("show-all").checked;
-  const btn = el("button", { type: "button", className: "tr-btn", title: "Show sentence translation" }, "EN");
-  btn.addEventListener("click", () => { tr.hidden = !tr.hidden; });
-  sEl.append(btn);
-  return [sEl, tr];
+  return sEl;
 }
 
 function renderDocument(d) {
@@ -130,7 +130,7 @@ function renderDocument(d) {
   for (const p of d.paragraphs) {
     if (p.heading) text.append(el("h2", {}, p.heading));
     const pe = el("p");
-    for (const s of p.sentences) pe.append(...renderSentence(s));
+    for (const s of p.sentences) pe.append(renderSentence(s));
     text.append(pe);
   }
   const att = $("attribution");
@@ -160,9 +160,6 @@ async function init() {
       select.append(el("option", { value: d.path }, d.title + (d.lane === "private" ? " [private]" : "")));
     }
     select.addEventListener("change", () => openDoc(select.value));
-    $("show-all").addEventListener("change", (ev) => {
-      document.querySelectorAll(".sentence-tr").forEach((t) => { t.hidden = !ev.target.checked; });
-    });
     document.addEventListener("keydown", (ev) => { if (ev.key === "Escape") closePanel(); });
     if (docs.length) await openDoc(docs[0].path);
     else showError("No documents available.");
