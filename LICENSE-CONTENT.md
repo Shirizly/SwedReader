@@ -6,6 +6,7 @@ The **content** in `data/public/` and `reader/content/` (the processed texts, th
 alignments and machine translations) is derived from the sources listed in each document's `source_url`,
 `attribution` and `license` fields. Texts derived from Wikipedia are licensed under
 [Creative Commons Attribution-ShareAlike 4.0 International (CC BY-SA 4.0)](https://creativecommons.org/licenses/by-sa/4.0/).
+Texts from Project Runeberg (e.g. Selma Lagerlöf, who died in 1940) are in the public domain.
 
 Changes made: the text was split into sentences and words, lemmatized, and machine-translated into English
 (Helsinki-NLP OPUS-MT), with word-level meanings derived by alignment. Each document links to the original page and

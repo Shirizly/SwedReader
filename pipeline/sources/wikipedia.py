@@ -1,16 +1,14 @@
-"""Fetch and parse source text."""
+"""Wikipedia: plain text through the MediaWiki API (no HTML scraping)."""
+import json
 import re
 from urllib.parse import unquote, urlparse
 
-import requests
+from .base import FetchError, PoliteFetcher, SourceText
 
-HEADERS = {"User-Agent": "TranslatePipeline/0.1 (personal language-learning project)"}
+DOMAINS = ("wikipedia.org",)
+DELAY = 0.0
 SKIP_SECTIONS = {"Källor", "Referenser", "Noter", "Externa länkar", "Se även", "Litteratur", "Fotnoter",
                  "Tryckta källor", "Vidare läsning", "Webbkällor", "Bildgalleri"}
-
-
-class FetchError(Exception):
-    pass
 
 
 def parse_sections(text):
@@ -39,30 +37,20 @@ def parse_sections(text):
     return [(h, p) for h, p in sections if h not in SKIP_SECTIONS and p]
 
 
-def fetch_wikipedia(url, session=requests):
-    """Return (title, sections) for a Wikipedia article URL, using the MediaWiki API."""
+def fetch(url, fetcher=None):
+    fetcher = fetcher or PoliteFetcher(delay=DELAY)
     parsed = urlparse(url)
     title = unquote(parsed.path.rsplit("/", 1)[-1])
     if not title:
         raise FetchError(f"No article title in URL: {url}")
     params = {"action": "query", "prop": "extracts", "explaintext": 1, "format": "json",
               "titles": title, "redirects": 1}
-    try:
-        r = session.get(f"{parsed.scheme}://{parsed.netloc}/w/api.php", params=params, headers=HEADERS, timeout=20)
-        r.raise_for_status()
-    except requests.RequestException as e:
-        raise FetchError(f"Could not fetch {url}: {e}") from e
-    page = next(iter(r.json()["query"]["pages"].values()))
+    raw = fetcher.get_bytes(f"{parsed.scheme}://{parsed.netloc}/w/api.php", params=params)
+    page = next(iter(json.loads(raw.decode("utf-8"))["query"]["pages"].values()))
     if not page.get("extract", "").strip():
         raise FetchError(f"No text found for {title!r}")
     sections = parse_sections(page["extract"])
     if not sections:
         raise FetchError(f"No article text left after parsing {title!r}")
-    return page["title"], sections
-
-
-def fetch(url):
-    host = (urlparse(url).hostname or "").lower()
-    if host.endswith("wikipedia.org"):
-        return fetch_wikipedia(url)
-    raise FetchError(f"No extractor for {host!r} yet (only Wikipedia is supported)")
+    history = f"{parsed.scheme}://{parsed.netloc}/w/index.php?title={page['title'].replace(' ', '_')}&action=history"
+    return SourceText(title=page["title"], sections=sections, history_url=history)

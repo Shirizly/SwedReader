@@ -1,6 +1,41 @@
 {
  "documents": [
   {
+   "id": "runeberg-org-kristleg-0005-html",
+   "title": "Den heliga natten (Selma Lagerlöf)",
+   "path": "content/runeberg-org-kristleg-0005-html.json",
+   "lane": "public",
+   "word_count": 1798
+  },
+  {
+   "id": "runeberg-org-kristleg-0011-html",
+   "title": "Kejsarens syn (Selma Lagerlöf)",
+   "path": "content/runeberg-org-kristleg-0011-html.json",
+   "lane": "public",
+   "word_count": 1939
+  },
+  {
+   "id": "runeberg-org-kristleg-0017-html",
+   "title": "De vise männens brunn (Selma Lagerlöf)",
+   "path": "content/runeberg-org-kristleg-0017-html.json",
+   "lane": "public",
+   "word_count": 2570
+  },
+  {
+   "id": "runeberg-org-kristleg-0113-html",
+   "title": "Fågel Rödbröst (Selma Lagerlöf)",
+   "path": "content/runeberg-org-kristleg-0113-html.json",
+   "lane": "public",
+   "word_count": 1970
+  },
+  {
+   "id": "runeberg-org-kristleg-0119-html",
+   "title": "Vår Herre och Sankte Per (Selma Lagerlöf)",
+   "path": "content/runeberg-org-kristleg-0119-html.json",
+   "lane": "public",
+   "word_count": 3000
+  },
+  {
    "id": "sv-wikipedia-org-wiki-stockholm",
    "title": "Stockholm",
    "path": "content/sv-wikipedia-org-wiki-stockholm.json",

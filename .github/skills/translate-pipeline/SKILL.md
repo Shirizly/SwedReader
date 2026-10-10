@@ -16,7 +16,7 @@ Swedish-to-English learning reader: a static web app (GitHub Pages) with instant
 ## Structure
 
 - `reader/` : static site (plain HTML/CSS/JS, no build step). `index.html`, `app.js`, `style.css`, `content/` (published documents + `index.json`). Relative paths only (works under a Pages subpath).
-- `pipeline/` : Python package/CLI (`python -m pipeline run|publish|serve|list`). One module per step: fetch, tokenize, align/glossary, translate, assemble, publish, db.
+- `pipeline/` : Python package/CLI (`python -m pipeline run <url> [<url> ...]|publish|serve|list`). One module per step: `sources/` (one module per site: `wikipedia.py`, `runeberg.py`; shared `base.py` with polite fetcher and encoding handling; add a module and register it in `sources/__init__.py` for a new site), `segment.py`, `translate.py` (translation + attention alignment), `assemble.py`, `publish.py`, `guard.py`, `db.py`, `config.py`.
 - `scripts/` : small standalone debug scripts (`align_debug.py [layer] ["Swedish sentence" ...]` prints word alignments).
 - `tests/` : pytest tests and fixtures (offline), `tests/fixtures/sample-fixture.json` is a hand-made reader fixture.
 - `data/public/` : generated documents eligible for publishing (committed). `data/private/` : git-ignored, never published; also holds the SQLite log `pipeline.db`.
@@ -34,5 +34,5 @@ Swedish-to-English learning reader: a static web app (GitHub Pages) with instant
 
 ## Run
 
-- Pipeline (from repo root, env `translatepipe`): `python -m pipeline run <url>`, `publish` (copies data/public → reader/content), `list`, `serve [port]` (reader + private docs, local only). Tests: `python -m pytest tests`.
+- Pipeline (from repo root, env `translatepipe`): `python -m pipeline run <url> [<url> ...]` (models load once; the translator uses CUDA when available), `publish` (copies data/public → reader/content), `list`, `serve [port]` (reader + private docs, local only). Runeberg stories: use the URL of the story's first page, e.g. `https://runeberg.org/kristleg/0005.html` (2 s crawl delay is enforced). Tests: `python -m pytest tests`.
 - Reader alone: `python3 -m http.server 8765 --bind 127.0.0.1` from `reader/`. Hard-reload to avoid cached CSS/JS.

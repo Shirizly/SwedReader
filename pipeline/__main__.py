@@ -1,38 +1,39 @@
-"""CLI: python -m pipeline run <url> | publish | list | serve [port]"""
+"""CLI: python -m pipeline run <url> [<url> ...] | publish | list | serve [port]"""
 import sys
-from pathlib import Path
-from urllib.parse import urlparse
 
 from . import db
 from .assemble import build_document, slugify, write_document
 from .config import ROOT, resolve_lane
-from .fetch import fetch
 from .publish import DATA, publish, serve
+from .sources import fetch
 
 DB_PATH = DATA / "private" / "pipeline.db"
+_models = {}
 
 
-def history_url_for(url, title):
-    p = urlparse(url)
-    if p.hostname and p.hostname.endswith("wikipedia.org"):
-        return f"{p.scheme}://{p.netloc}/w/index.php?title={title.replace(' ', '_')}&action=history"
-    return ""
+def models():
+    """Load spaCy and the translator once per process."""
+    if not _models:
+        import spacy
+        from .translate import OpusMtTranslator
+        _models["nlp"] = spacy.load("sv_core_news_sm")
+        _models["translator"] = OpusMtTranslator()
+        print(f"translator device: {_models['translator'].device}")
+    return _models["nlp"], _models["translator"]
 
 
 def run(url):
     lane_info = resolve_lane(url)  # lane is decided before anything is fetched or written
     lane = lane_info["lane"]
-    print(f"lane: {lane} ({lane_info['domain']})")
+    print(f"\n{url}\nlane: {lane} ({lane_info['domain']})")
     conn = db.connect(_db_path())
     base = dict(id=slugify(url), source_url=url, source_domain=lane_info["domain"], lane=lane)
     try:
-        title, sections = fetch(url)
-        print(f"fetched {title!r}: {sum(len(p) for _, p in sections)} paragraphs")
-        import spacy
-        from .translate import OpusMtTranslator
-        nlp = spacy.load("sv_core_news_sm")
-        translator = OpusMtTranslator()
-        doc = build_document(url, lane_info, title, sections, nlp, translator, history_url_for(url, title))
+        source = fetch(url)
+        print(f"fetched {source.title!r}: {sum(len(p) for _, p in source.sections)} paragraphs")
+        lane_info = {**lane_info, "attribution": source.attribution or lane_info["attribution"]}
+        nlp, translator = models()
+        doc = build_document(url, lane_info, source.title, source.sections, nlp, translator, source.history_url)
         path, digest = write_document(doc, DATA / lane)
     except Exception as e:
         db.upsert_document(conn, **base, status="failed", error=f"{type(e).__name__}: {e}")
@@ -50,8 +51,15 @@ def _db_path():
 
 def main(argv):
     cmd = argv[0] if argv else ""
-    if cmd == "run" and len(argv) == 2:
-        run(argv[1])
+    if cmd == "run" and len(argv) >= 2:
+        failed = []
+        for url in argv[1:]:
+            try:
+                run(url)
+            except Exception as e:  # keep going; failures are logged in the database
+                print(f"FAILED: {type(e).__name__}: {e}")
+                failed.append(url)
+        return 1 if failed else 0
     elif cmd == "publish":
         ids = publish()
         conn = db.connect(_db_path())
