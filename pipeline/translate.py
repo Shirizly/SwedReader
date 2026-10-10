@@ -7,9 +7,22 @@ import re
 
 import torch
 
+from .qa import GAP
+
 MODEL = "Helsinki-NLP/opus-mt-sv-en"
 ALIGN_LAYER = 4  # decoder layer whose cross-attention aligns best (all-layer mean shifts onto neighbours)
 MAX_GROUP = 4
+
+
+def join_target_words(indices, words, text):
+    """English text for aligned target-word indices; non-adjacent pieces are separated by a gap marker."""
+    out, prev = [], None
+    for j in sorted(set(indices)):
+        if prev is not None and j != prev + 1:
+            out.append(GAP)
+        out.append(text[words[j][0]:words[j][1]])
+        prev = j
+    return " ".join(out)
 
 
 class OpusMtTranslator:
@@ -30,6 +43,21 @@ class OpusMtTranslator:
             with torch.no_grad():
                 gen = self.model.generate(**batch, num_beams=4, max_length=256)
             out.extend(self.tok.batch_decode(gen, skip_special_tokens=True))
+        return out
+
+    def translate_words(self, words):
+        """Translate isolated words/lemmas (no context, so only a fallback). Returns one string per input."""
+        out = []
+        for i in range(0, len(words), 64):
+            chunk = words[i:i + 64]
+            batch = self.tok(chunk, return_tensors="pt", padding=True, truncation=True, max_length=32).to(self.device)
+            with torch.no_grad():
+                gen = self.model.generate(**batch, num_beams=4, max_length=24)
+            for src, tr in zip(chunk, self.tok.batch_decode(gen, skip_special_tokens=True)):
+                tr = tr.strip().rstrip(".").strip()
+                if src.islower() and tr[:1].isupper() and not tr.isupper():
+                    tr = tr[0].lower() + tr[1:]
+                out.append(tr)
         return out
 
     def _piece_spans(self, pieces, text):
@@ -106,7 +134,7 @@ class OpusMtTranslator:
                 parent[find(i)] = find(owner[best])
 
         def words(js):
-            return " ".join(tgt_text[tgt_words[j][0]:tgt_words[j][1]] for j in sorted(js))
+            return join_target_words(js, tgt_words, tgt_text)
 
         in_context = [words(result[i]) for i in range(len(src_words))]
         members = {}

@@ -55,7 +55,7 @@ def test_runeberg_story_is_assembled_across_pages():
         "Sista stycket börjar här och fortsätter på nästa sida.",  # paragraph continued across the page break
         "Nytt stycke. Fem- och sexåringar.",  # page number dropped; hyphen before "och" kept
     ]
-    assert src.title == "Den heliga natten (Selma Lagerlöf)"
+    assert src.title == "Den heliga natten" and src.author == "Selma Lagerlöf"
     assert src.attribution == "Selma Lagerlöf, Kristuslegender (1904). Text from Project Runeberg (public domain)."
 
 

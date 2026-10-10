@@ -7,3 +7,4 @@ transformers==5.19.0
 sentencepiece==0.2.2
 torch==2.14.1
 # Swedish spaCy model: python -m spacy download sv_core_news_sm  (3.8.0)
+# English spaCy model (lemmas for the QA comparison): python -m spacy download en_core_web_sm

@@ -22,6 +22,9 @@ class FakeTranslator:
     def translate(self, sentences):
         return [f"EN: {s}" for s in sentences]
 
+    def translate_words(self, words):
+        return [f"{w}-en" for w in words]
+
     def align(self, src_text, tokens, tgt_text):
         return [t["text"].lower() if t["is_word"] else "" for t in tokens], []
 

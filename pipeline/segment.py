@@ -21,6 +21,8 @@ def tokens_from_doc(doc):
             continue
         lemma = LEMMA_OVERRIDES.get(t.lower_, t.lemma_ or t.text) if t.is_alpha else (t.lemma_ or t.text)
         tokens.append({"text": t.text, "lemma": lemma, "is_word": t.is_alpha, "ws": t.whitespace_})
+        if t.is_alpha and t.pos_:
+            tokens[-1]["pos"] = t.pos_
     return tokens
 
 

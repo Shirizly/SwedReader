@@ -119,9 +119,8 @@ def fetch(url, fetcher=None):
     if not paragraphs:
         raise FetchError(f"No text found for story {story['title']!r}")
     author = meta["author"]
-    title = f"{story['title']} ({author})" if author else story["title"]
     work = meta["work"] + (f" ({meta['year']})" if meta["year"] else "") if meta["work"] else ""
     credit = ", ".join(x for x in (author, work) if x)
     attribution = f"{credit}. Text from Project Runeberg (public domain)." if credit else ""
-    return SourceText(title=title, sections=[(None, paragraphs)], attribution=attribution,
+    return SourceText(title=story["title"], author=author, sections=[(None, paragraphs)], attribution=attribution,
                       extra={"pages": len(story["pages"])})

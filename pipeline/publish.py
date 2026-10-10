@@ -12,8 +12,8 @@ REQUIRED_PUBLIC = ("license", "license_url", "attribution")
 
 
 def _index_entry(doc, path):
-    return {"id": doc["id"], "title": doc["title"], "path": path, "lane": doc["lane"],
-            "word_count": doc["word_count"]}
+    return {"id": doc["id"], "title": doc["title"], "author": doc.get("author", ""), "path": path,
+            "lane": doc["lane"], "word_count": doc["word_count"]}
 
 
 def publish(public_dir=DATA / "public", content_dir=READER / "content"):

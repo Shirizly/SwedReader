@@ -51,19 +51,32 @@ function clearActive() {
   document.querySelectorAll(".sentence-hl").forEach((e) => e.classList.remove("sentence-hl"));
 }
 
+function entryFor(token) {
+  return (doc.glossary && doc.glossary[token.lemma + "|" + (token.pos || "")]) || {};
+}
+
 function renderPanel(sentence, sentenceEl, token, group) {
   const panel = $("panel");
   panel.replaceChildren();
-  const glosses = (doc.glossary && doc.glossary[token.lemma]) || [];
-  const meaning = (group ? group.in_context : token.in_context) || glosses.join(", ");
+  const entry = entryFor(token);
+  const dictAll = Array.isArray(entry.dict) ? entry.dict.join(", ") : "";
+  const dictShort = Array.isArray(entry.dict) ? entry.dict.slice(0, 2).join(", ") : "";
+  const mt = entry.mt || "";
+  const fallback = dictShort || mt;  // a curated dictionary beats a context-free machine translation
+  const aligned = group ? group.in_context : token.in_context;
+  const check = group ? group.check : token.check;
+  // Meanings flagged "weak" (only articles/pronouns, e.g. "me") or "wide" (scattered, unrelated to the
+  // fallbacks) are ignored in favour of the fallbacks.
+  const meaning = (check !== "weak" && check !== "wide" && aligned) || fallback;
   panel.append(meaning
     ? el("p", { className: "meaning" }, meaning)
     : el("p", { className: "muted" }, "No translation available."));
   if (token.lemma && token.lemma.toLowerCase() !== token.text.toLowerCase()) {
     panel.append(el("p", { className: "muted" }, "Base form: " + token.lemma));
   }
-  if (glosses.length && (group ? group.in_context : token.in_context)) {
-    panel.append(el("p", { className: "muted" }, "Dictionary: " + glosses.join(", ")));
+  if (dictAll && dictAll !== meaning) panel.append(el("p", { className: "muted" }, "Dictionary: " + dictAll));
+  if (check === "diff" && mt && mt !== meaning && !dictAll.includes(mt)) {
+    panel.append(el("p", { className: "muted" }, "Other translation: " + mt));
   }
 
   const trBox = el("p", { className: "sentence-translation" }, sentence.translation);
@@ -124,7 +137,11 @@ function renderDocument(d) {
   validate(d);
   doc = d;
   $("error").hidden = true;
-  $("doc-title").textContent = d.title || "";
+  const title = $("doc-title");
+  title.replaceChildren();
+  if (d.title_sentence) title.append(renderSentence(d.title_sentence));
+  else title.textContent = d.title || "";
+  $("byline").textContent = d.author || "";
   const text = $("text");
   text.replaceChildren();
   for (const p of d.paragraphs) {
@@ -136,6 +153,12 @@ function renderDocument(d) {
   const att = $("attribution");
   att.replaceChildren();
   att.append(document.createTextNode(`Source: ${(d.attribution || d.source_url || "").replace(/[.\s]+$/, "")}. Licence: ${d.license || "unknown"}. Words and sentences were tokenized and machine-translated. `));
+  if (d.dictionary && d.dictionary.name) {
+    att.append(document.createTextNode(`Dictionary entries: ${d.dictionary.name} (${d.dictionary.license || ""}). `));
+    if (/^https?:\/\//.test(d.dictionary.url || "")) {
+      att.append(el("a", { href: d.dictionary.url, rel: "noopener" }, d.dictionary.name), document.createTextNode(" "));
+    }
+  }
   for (const [label, url] of [["Original", d.source_url], ["History", d.history_url], ["Licence text", d.license_url]]) {
     if (url && /^https?:\/\//.test(url)) {
       att.append(el("a", { href: url, rel: "noopener" }, label), document.createTextNode(" "));
@@ -157,7 +180,8 @@ async function init() {
     const docs = await loadIndex();
     const select = $("doc-select");
     for (const d of docs) {
-      select.append(el("option", { value: d.path }, d.title + (d.lane === "private" ? " [private]" : "")));
+      select.append(el("option", { value: d.path },
+        d.title + (d.author ? " – " + d.author : "") + (d.lane === "private" ? " [private]" : "")));
     }
     select.addEventListener("change", () => openDoc(select.value));
     document.addEventListener("keydown", (ev) => { if (ev.key === "Escape") closePanel(); });

@@ -1,4 +1,5 @@
-"""CLI: python -m pipeline run <url> [<url> ...] | publish | list | serve [port]"""
+"""CLI: python -m pipeline run <url> [<url> ...] | publish | list | serve [port] | build-dict | review <doc-id>"""
+import json
 import sys
 
 from . import db
@@ -12,14 +13,27 @@ _models = {}
 
 
 def models():
-    """Load spaCy and the translator once per process."""
+    """Load spaCy, the translator, the dictionary (if built) and an English lemmatizer once per process."""
     if not _models:
+        import functools
+
         import spacy
+        from . import dictionary
         from .translate import OpusMtTranslator
         _models["nlp"] = spacy.load("sv_core_news_sm")
         _models["translator"] = OpusMtTranslator()
         print(f"translator device: {_models['translator'].device}")
-    return _models["nlp"], _models["translator"]
+        _models["dictionary"] = dictionary.Dictionary() if dictionary.DB_PATH.exists() else None
+        if _models["dictionary"] is None:
+            print("note: no dictionary found (run: python -m pipeline build-dict); using machine translation only")
+        en = spacy.load("en_core_web_sm", disable=["parser", "ner"])
+
+        @functools.lru_cache(maxsize=None)
+        def lemmas(text):
+            return tuple(t.lemma_.lower() for t in en(text) if t.is_alpha)
+
+        _models["lemmas"] = lemmas
+    return _models["nlp"], _models["translator"], _models["dictionary"], _models["lemmas"]
 
 
 def run(url):
@@ -32,21 +46,48 @@ def run(url):
         source = fetch(url)
         print(f"fetched {source.title!r}: {sum(len(p) for _, p in source.sections)} paragraphs")
         lane_info = {**lane_info, "attribution": source.attribution or lane_info["attribution"]}
-        nlp, translator = models()
-        doc = build_document(url, lane_info, source.title, source.sections, nlp, translator, source.history_url)
+        nlp, translator, dictionary, lemmas = models()
+        doc = build_document(url, lane_info, source.title, source.sections, nlp, translator, source.history_url,
+                             author=source.author, dictionary=dictionary, lemmas=lemmas)
         path, digest = write_document(doc, DATA / lane)
     except Exception as e:
         db.upsert_document(conn, **base, status="failed", error=f"{type(e).__name__}: {e}")
         raise
     db.upsert_document(conn, **base, word_count=doc["word_count"],
                        output_path=str(path.relative_to(ROOT)), content_hash=digest)
-    print(f"wrote {path.relative_to(ROOT)} ({doc['word_count']} words)")
+    print(f"wrote {path.relative_to(ROOT)} ({doc['word_count']} words); QA: {doc.get('qa')}")
+    from .review import write_report
+    report, n = write_report(doc)
+    print(f"review report: {report.relative_to(ROOT)} ({n} flagged)")
     return path
 
 
 def _db_path():
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     return DB_PATH
+
+
+def build_dictionary():
+    from . import dictionary
+    if not dictionary.XML_PATH.exists():
+        from .sources.base import PoliteFetcher
+        print("downloading", dictionary.XML_URL)
+        dictionary.XML_PATH.parent.mkdir(parents=True, exist_ok=True)
+        dictionary.XML_PATH.write_bytes(PoliteFetcher().get_bytes(dictionary.XML_URL))
+    n = dictionary.build()
+    print(f"built {dictionary.DB_PATH.relative_to(ROOT)}: {n} entries")
+
+
+def review(doc_id):
+    from .review import write_report
+    for lane in ("public", "private"):
+        path = DATA / lane / f"{doc_id}.json"
+        if path.exists():
+            report, n = write_report(json.loads(path.read_text(encoding="utf-8")))
+            print(f"review report: {report.relative_to(ROOT)} ({n} flagged)")
+            return 0
+    print(f"no document {doc_id!r} in data/public or data/private")
+    return 1
 
 
 def main(argv):
@@ -60,6 +101,10 @@ def main(argv):
                 print(f"FAILED: {type(e).__name__}: {e}")
                 failed.append(url)
         return 1 if failed else 0
+    elif cmd == "build-dict":
+        build_dictionary()
+    elif cmd == "review" and len(argv) == 2:
+        return review(argv[1])
     elif cmd == "publish":
         ids = publish()
         conn = db.connect(_db_path())

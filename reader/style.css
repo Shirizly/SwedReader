@@ -8,6 +8,7 @@ main { max-width: 42rem; margin: 0 auto; padding: 1rem 1rem 14rem; }
 .word.active, .word.in-group { background: #ffd966; }
 .sentence-hl { background: #dbeafe; border-radius: 3px; }
 .sentence-hl .word.active, .sentence-hl .word.in-group { background: #ffd966; }
+#byline { margin: -.5rem 0 1rem; }
 #attribution { margin-top: 2rem; font-size: .8em; color: #666; }
 #panel { position: fixed; right: 1rem; bottom: 1rem; width: 18rem; max-width: calc(100% - 2rem);
   background: #fff; border: 1px solid #ccc; box-shadow: 0 2px 10px #0003; border-radius: 8px; padding: .75rem 1rem; }

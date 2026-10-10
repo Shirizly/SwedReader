@@ -19,6 +19,7 @@ class SourceText:
     sections: list  # [(heading | None, [paragraph, ...]), ...]
     attribution: str = ""  # overrides the sources.yaml attribution when set
     history_url: str = ""
+    author: str = ""
     extra: dict = field(default_factory=dict)
 
 
