@@ -1,8 +1,24 @@
 [hidden] { display: none !important; }
 body { font-family: system-ui, sans-serif; margin: 0; line-height: 1.7; }
-header { display: flex; gap: 1rem; padding: .5rem 1rem; background: #f0f0f0; flex-wrap: wrap; }
 main { max-width: 42rem; margin: 0 auto; padding: 1rem 1rem 14rem; }
 #error { background: #fde8e8; color: #900; padding: .5rem 1rem; border-radius: 4px; }
+.error { background: #fde8e8; color: #900; padding: .5rem 1rem; border-radius: 4px; }
+.reader-header { display: flex; align-items: center; gap: 1rem; padding: .5rem 0; flex-wrap: wrap; }
+.reader-header label { display: flex; align-items: center; gap: .5rem; }
+.dashboard { display: flex; gap: 1.5rem; flex-wrap: wrap; background: #f0f4f8; padding: .25rem 1rem; border-radius: 8px; }
+.home-actions { margin: 1rem 0 2rem; }
+.story-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); gap: 1rem; }
+.story-card, .quiz-card { border: 1px solid #ddd; border-radius: 8px; padding: 1rem; }
+.story-card h3 { margin-top: 0; }
+.source-tag { display: inline-block; padding: .1rem .5rem; border-radius: 1rem; background: #eee; font-size: .85rem; }
+.card-actions { display: flex; gap: .5rem; flex-wrap: wrap; }
+.button { display: inline-block; border: 0; border-radius: 4px; padding: .6rem .9rem; background: #1565c0; color: #fff; font: inherit; text-decoration: none; cursor: pointer; }
+.button-secondary { background: #388e3c; }
+.button:focus-visible, a:focus-visible, select:focus-visible { outline: 3px solid #ffbf00; outline-offset: 2px; }
+.quiz-card { max-width: 32rem; margin: 2rem auto; }
+.meaning { font-size: 1.3rem; font-weight: 600; }
+.reading-complete { margin-top: 2rem; padding: 1rem; background: #e8f5e9; border-radius: 8px; }
+.reading-complete a { font-weight: 600; }
 .word { cursor: pointer; border-radius: 3px; }
 .word:hover, .word:focus-visible { background: #fff3b0; outline: none; }
 .word.active, .word.in-group { background: #ffd966; }
@@ -18,5 +34,7 @@ main { max-width: 42rem; margin: 0 auto; padding: 1rem 1rem 14rem; }
 #panel button { margin: .5rem .5rem 0 0; cursor: pointer; }
 .muted { color: #777; }
 @media (max-width: 600px) {
+  .dashboard { display: block; }
+  .card-actions .button { flex: 1 1 auto; text-align: center; }
   #panel { left: 0; right: 0; bottom: 0; width: auto; max-width: none; border-radius: 12px 12px 0 0; }
 }

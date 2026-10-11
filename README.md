@@ -1,0 +1,1 @@
+Swedish language text reader with built-in translation, TTS, word review.

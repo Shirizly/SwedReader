@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="sv">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Swedish Reader</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main>
+    <div id="error" role="alert" hidden></div>
+    <header class="reader-header">
+      <a href="index.html">Library</a>
+      <label>Text <select id="doc-select"></select></label>
+    </header>
+    <h1 id="doc-title"></h1>
+    <p id="byline" class="muted"></p>
+    <article id="text" lang="sv"></article>
+    <aside id="reading-complete" class="reading-complete" hidden></aside>
+    <footer id="attribution"></footer>
+    <p class="site-links"><a href="licenses.html">Licences and credits</a></p>
+  </main>
+  <aside id="panel" hidden aria-live="polite"></aside>
+  <script src="tracker.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

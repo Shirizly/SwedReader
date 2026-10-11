@@ -36,12 +36,21 @@ function validate(d) {
 }
 
 async function loadIndex() {
-  const docs = (await fetchJson("content/index.json")).documents;
-  // Present only when served locally by the pipeline; a 404 on GitHub Pages is expected.
-  try {
-    const priv = await fetchJson("content-private/index.json");
+  const publicIndex = await fetchJson("content/index.json");
+  if (!publicIndex || !Array.isArray(publicIndex.documents)) {
+    throw new Error("The public document list is malformed.");
+  }
+  const docs = publicIndex.documents;
+  const privateResponse = await fetch("content-private/index.json");
+  if (privateResponse.ok) {
+    const priv = await privateResponse.json();
+    if (!priv || !Array.isArray(priv.documents)) {
+      throw new Error("The private document list is malformed.");
+    }
     for (const d of priv.documents) docs.push({ ...d, lane: "private" });
-  } catch (_) { /* no private content */ }
+  } else if (privateResponse.status !== 404) {
+    throw new Error(`content-private/index.json: HTTP ${privateResponse.status}`);
+  }
   return docs;
 }
 
@@ -103,6 +112,23 @@ function selectWord(sentence, sentenceEl, index, tokenEls) {
   clearActive();
   const token = sentence.tokens[index];
   const group = (sentence.groups || []).find((g) => g.token_ids.includes(index));
+  const entry = entryFor(token);
+  const aligned = group ? group.in_context : token.in_context;
+  const check = group ? group.check : token.check;
+  const meaning = (check !== "weak" && check !== "wide" && aligned)
+    || entry.dict?.[0] || entry.mt || "";
+  try {
+    if (token.lemma) {
+      recordWordCheck({
+        lemma: token.lemma,
+        surface: token.text,
+        meaning,
+        docId: doc.id,
+      });
+    }
+  } catch (err) {
+    showError("Could not save learning progress: " + err.message);
+  }
   const targets = group ? group.token_ids : [index];
   for (const i of targets) {
     tokenEls[i].classList.add(group ? "in-group" : "active");
@@ -142,6 +168,7 @@ function renderDocument(d) {
   if (d.title_sentence) title.append(renderSentence(d.title_sentence));
   else title.textContent = d.title || "";
   $("byline").textContent = d.author || "";
+  $("reading-complete").hidden = true;
   const text = $("text");
   text.replaceChildren();
   for (const p of d.paragraphs) {
@@ -165,6 +192,11 @@ function renderDocument(d) {
     }
   }
   closePanel();
+  try {
+    recordDocumentExposure(d);
+  } catch (err) {
+    showError("Could not save learning progress: " + err.message);
+  }
 }
 
 async function openDoc(path) {
@@ -185,8 +217,36 @@ async function init() {
     }
     select.addEventListener("change", () => openDoc(select.value));
     document.addEventListener("keydown", (ev) => { if (ev.key === "Escape") closePanel(); });
-    if (docs.length) await openDoc(docs[0].path);
-    else showError("No documents available.");
+    if (!docs.length) {
+      showError("No documents available.");
+      return;
+    }
+    const requestedPath = new URLSearchParams(window.location.search).get("story");
+    const selectedDoc = requestedPath
+      ? docs.find((candidate) => candidate.path === requestedPath)
+      : docs[0];
+    if (!selectedDoc) {
+      showError("The requested document is not in the available document list.");
+      return;
+    }
+    select.value = selectedDoc.path;
+    await openDoc(selectedDoc.path);
+
+    const completion = $("reading-complete");
+    const observer = new IntersectionObserver((entries) => {
+      if (!entries.some((entry) => entry.isIntersecting) || !doc) return;
+      const lookups = getLookupCount(doc.id);
+      completion.replaceChildren(
+        el("strong", {}, "Story complete."),
+        el("span", {}, ` You looked up ${lookups} ${lookups === 1 ? "word" : "words"} in this story. `),
+      );
+      const quizLink = el("a", {
+        href: `quiz.html?story=${encodeURIComponent(doc.id)}`,
+      }, "Practice these words");
+      completion.append(quizLink);
+      completion.hidden = false;
+    }, { threshold: 0.1 });
+    observer.observe($("attribution"));
   } catch (err) {
     showError("Could not load the document list: " + err.message);
   }

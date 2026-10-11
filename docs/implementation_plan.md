@@ -106,6 +106,14 @@ Machine translation is the base for everything. Sentences are translated whole (
 - **Test:** Create a temp tree with public and private documents; assert only public ones are copied and indexed, a mislabelled private file in the public directory is rejected, and the CI guard script fails on a private file. After deploy, verify the Pages URL loads the index and a document.
 - **Human test required:** Open the deployed site on desktop and mobile; confirm no private-source content is present and attribution is displayed.
 
+### 10. Add a learning dashboard and local spaced repetition
+
+- The reader home page lists documents from the generated public index and, when served locally, the private index. Public Pages deployments continue to expose public content only.
+- Browser-local learning data records unique lemmas exposed, word lookups, and stories read. A review page presents due words and schedules remembered answers with increasing Leitner intervals; story-filtered review uses the documents where each word has been looked up.
+- The reader shows a story-completion prompt with the number of lookups for that document and a link to its review queue. Learning data remains in the learner's browser and is not sent to the pipeline or server.
+- **Human test required:** Check the mobile dashboard, confirm private stories appear only in local mode, and verify that clearing browser storage removes local progress.
+- **Deferred:** TTS generation and synchronized audio highlighting are outside this extension's scope.
+
 ## Deferred (after the Stockholm slice works)
 
 - RSS/Atom discovery for additional sources (`feedparser`), and extractors for Runeberg, 8 Sidor, and SVT.

@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Vocabulary review</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main>
+    <nav class="reader-header"><a href="index.html">Library</a></nav>
+    <h1>Vocabulary review</h1>
+    <p id="quiz-error" class="error" role="alert" hidden></p>
+    <section id="quiz" class="quiz-card" aria-live="polite">
+      <p id="quiz-progress" class="muted"></p>
+      <h2 id="quiz-prompt"></h2>
+      <button id="reveal-answer" class="button" type="button">Show meaning</button>
+      <div id="quiz-answer" hidden>
+        <p id="quiz-meaning" class="meaning"></p>
+        <p id="quiz-surface" class="muted"></p>
+        <button id="remembered" class="button button-secondary" type="button">Remembered</button>
+        <button id="forgotten" class="button" type="button">Forgot</button>
+      </div>
+    </section>
+  </main>
+  <script src="tracker.js"></script>
+  <script src="quiz.js"></script>
+</body>
+</html>

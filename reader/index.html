@@ -1,24 +1,30 @@
 <!doctype html>
-<html lang="sv">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Swedish Reader</title>
+  <title>Swedish Reader — Läs &amp; Lär Svenska</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <header>
-    <label>Text <select id="doc-select"></select></label>
-  </header>
   <main>
     <div id="error" role="alert" hidden></div>
-    <h1 id="doc-title"></h1>
-    <p id="byline" class="muted"></p>
-    <article id="text" lang="sv"></article>
-    <footer id="attribution"></footer>
-    <p class="site-links"><a href="licenses.html">Licences and credits</a></p>
+    <section id="home-view">
+      <h1>Läs &amp; Lär Svenska</h1>
+      <section class="dashboard" aria-label="Learning progress">
+        <p><strong>Unique words encountered:</strong> <span id="stat-words">0</span></p>
+        <p><strong>Words due for review:</strong> <span id="stat-due">0</span></p>
+      </section>
+      <p id="home-error" class="error" role="alert" hidden></p>
+      <nav class="home-actions" aria-label="Practice">
+        <a class="button" id="review-all" href="quiz.html">Review all due words</a>
+      </nav>
+      <h2>Library</h2>
+      <div id="story-gallery" class="story-grid"></div>
+      <p class="site-links"><a href="licenses.html">Licences and credits</a></p>
+    </section>
   </main>
-  <aside id="panel" hidden aria-live="polite"></aside>
-  <script src="app.js"></script>
+  <script src="tracker.js"></script>
+  <script src="home.js"></script>
 </body>
 </html>
