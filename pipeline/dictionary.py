@@ -72,17 +72,26 @@ class Dictionary:
         return self.conn.execute("SELECT pos, gloss FROM entries WHERE lemma = ? ORDER BY ord", (lemma,)).fetchall()
 
     def lookup(self, lemma, pos="", surface=""):
-        """Up to MAX_GLOSSES English glosses for a lemma, preferring entries of the matching word class.
-        Falls back to the lowercased surface form and to inflected forms listed in the dictionary."""
+        """Return the most specific matching glosses, preferring surface entries and inflections."""
         wanted = POS_MAP.get(pos, ())
-        for cand in dict.fromkeys(x.lower() for x in (lemma, surface) if x):
+        fallback = []
+        for cand in dict.fromkeys(x.lower() for x in (surface, lemma) if x):
             rows = self._rows(cand)
-            if not rows:
-                for (base,) in self.conn.execute("SELECT DISTINCT lemma FROM forms WHERE form = ?", (cand,)):
-                    rows = self._rows(base)
-                    if rows:
-                        break
             if rows:
                 matching = [r for r in rows if r[0] in wanted]
-                return list(dict.fromkeys(g for _, g in (matching or rows)))[:MAX_GLOSSES]
-        return []
+                if matching:
+                    return list(dict.fromkeys(g for _, g in matching))[:MAX_GLOSSES]
+                if cand == surface.lower():
+                    unclassified = [r for r in rows if not r[0]]
+                    if unclassified:
+                        return list(dict.fromkeys(g for _, g in unclassified))[:MAX_GLOSSES]
+                if not fallback:
+                    fallback = rows
+            for (base,) in self.conn.execute("SELECT DISTINCT lemma FROM forms WHERE form = ?", (cand,)):
+                form_rows = self._rows(base)
+                matching = [r for r in form_rows if r[0] in wanted]
+                if matching:
+                    return list(dict.fromkeys(g for _, g in matching))[:MAX_GLOSSES]
+                if form_rows and not fallback:
+                    fallback = form_rows
+        return list(dict.fromkeys(g for _, g in fallback))[:MAX_GLOSSES]

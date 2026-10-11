@@ -25,6 +25,11 @@ function renderQuestion() {
   }
   quiz$("quiz-progress").textContent = `Card ${currentIndex + 1} of ${reviewQueue.length}`;
   quiz$("quiz-prompt").textContent = currentWord.lemma;
+  quiz$("quiz-source").textContent = currentWord.meaningSource === "dictionary"
+    ? "Dictionary glosses"
+    : currentWord.meaningSource === "machine translation"
+      ? "Isolated machine translation (dictionary entry unavailable)"
+      : "Meaning unavailable";
   quiz$("quiz-surface").textContent = currentWord.surface !== currentWord.lemma
     ? `Seen as: ${currentWord.surface}` : "";
   quiz$("quiz-meaning").textContent = currentWord.meaning;

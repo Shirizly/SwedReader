@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Swedish Reader — Läs &amp; Lär Svenska</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=5">
 </head>
 <body>
   <main>
@@ -13,8 +13,10 @@
       <h1>Läs &amp; Lär Svenska</h1>
       <section class="dashboard" aria-label="Learning progress">
         <p><strong>Unique words encountered:</strong> <span id="stat-words">0</span></p>
+        <p><strong>Words looked up:</strong> <span id="stat-tracked">0</span></p>
         <p><strong>Words due for review:</strong> <span id="stat-due">0</span></p>
       </section>
+      <div id="home-progress-note" aria-live="polite"></div>
       <p id="home-error" class="error" role="alert" hidden></p>
       <nav class="home-actions" aria-label="Practice">
         <a class="button" id="review-all" href="quiz.html">Review all due words</a>
@@ -24,7 +26,7 @@
       <p class="site-links"><a href="licenses.html">Licences and credits</a></p>
     </section>
   </main>
-  <script src="tracker.js"></script>
-  <script src="home.js"></script>
+  <script src="tracker.js?v=5"></script>
+  <script src="home.js?v=5"></script>
 </body>
 </html>

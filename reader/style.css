@@ -6,10 +6,12 @@ main { max-width: 42rem; margin: 0 auto; padding: 1rem 1rem 14rem; }
 .reader-header { display: flex; align-items: center; gap: 1rem; padding: .5rem 0; flex-wrap: wrap; }
 .reader-header label { display: flex; align-items: center; gap: .5rem; }
 .dashboard { display: flex; gap: 1.5rem; flex-wrap: wrap; background: #f0f4f8; padding: .25rem 1rem; border-radius: 8px; }
-.home-actions { margin: 1rem 0 2rem; }
+.home-actions { margin: 1.25rem 0 2.25rem; }
 .story-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); gap: 1rem; }
-.story-card, .quiz-card { border: 1px solid #ddd; border-radius: 8px; padding: 1rem; }
-.story-card h3 { margin-top: 0; }
+.story-card, .quiz-card { border: 1px solid #b9c5d0; border-radius: 10px; padding: 1rem; background: #fff; box-shadow: 0 2px 6px #142a3b12; }
+.story-card { display: flex; flex-direction: column; align-items: flex-start; }
+.story-card h3 { margin: 0 0 .5rem; }
+.story-card p { margin: .4rem 0; }
 .source-tag { display: inline-block; padding: .1rem .5rem; border-radius: 1rem; background: #eee; font-size: .85rem; }
 .card-actions { display: flex; gap: .5rem; flex-wrap: wrap; }
 .button { display: inline-block; border: 0; border-radius: 4px; padding: .6rem .9rem; background: #1565c0; color: #fff; font: inherit; text-decoration: none; cursor: pointer; }
@@ -35,6 +37,12 @@ main { max-width: 42rem; margin: 0 auto; padding: 1rem 1rem 14rem; }
 .muted { color: #777; }
 @media (max-width: 600px) {
   .dashboard { display: block; }
-  .card-actions .button { flex: 1 1 auto; text-align: center; }
+  .story-grid { grid-template-columns: 1fr; gap: .85rem; }
+  .story-card { border-width: 2px; padding: 1rem 1.1rem; }
+  .card-actions { width: 100%; flex-direction: column; gap: .65rem; margin-top: .4rem; }
+  .card-actions .button { width: auto; text-align: center; }
+  .home-actions { margin: 1.5rem 0 2.5rem; }
+  .site-links { margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #d8dee5; }
+  .site-links a { display: inline-block; padding: .35rem 0; }
   #panel { left: 0; right: 0; bottom: 0; width: auto; max-width: none; border-radius: 12px 12px 0 0; }
 }

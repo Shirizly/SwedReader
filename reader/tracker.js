@@ -16,6 +16,7 @@ function getTrackerStore() {
   if (saved === null) return emptyTrackerStore();
 
   let store;
+  let migrated = false;
   try {
     store = JSON.parse(saved);
   } catch (error) {
@@ -26,6 +27,16 @@ function getTrackerStore() {
       || !store.storiesRead || typeof store.storiesRead !== "object") {
     throw new Error("Saved learning data has an unsupported format.");
   }
+  for (const word of Object.values(store.trackedWords)) {
+    if (!Object.prototype.hasOwnProperty.call(word, "meaningSource")) {
+      word.meaning = "";
+      word.meaningSource = "";
+      word.box = 1;
+      word.nextReview = Date.now();
+      migrated = true;
+    }
+  }
+  if (migrated) saveTrackerStore(store);
   return store;
 }
 
@@ -33,7 +44,7 @@ function saveTrackerStore(store) {
   localStorage.setItem(TRACKER_STORAGE_KEY, JSON.stringify(store));
 }
 
-function recordWordCheck({ lemma, surface, meaning, docId }) {
+function recordWordCheck({ lemma, surface, meaning, meaningSource, docId }) {
   if (!lemma || !docId) return;
   const store = getTrackerStore();
   let word = store.trackedWords[lemma];
@@ -42,13 +53,24 @@ function recordWordCheck({ lemma, surface, meaning, docId }) {
       lemma,
       surface,
       meaning: meaning || "",
+      meaningSource: meaningSource || "",
       box: 1,
       nextReview: Date.now(),
       docIds: [],
       lookupsByDoc: {},
     };
   }
-  if (meaning) word.meaning = meaning;
+  const hadMeaning = Boolean(word.meaning);
+  const sourcePriority = { "": 0, "machine translation": 1, dictionary: 2 };
+  if (meaning && (sourcePriority[meaningSource || ""] || 0)
+      >= (sourcePriority[word.meaningSource || ""] || 0)) {
+    word.meaning = meaning;
+    word.meaningSource = meaningSource || "";
+    if (!hadMeaning) {
+      word.box = 1;
+      word.nextReview = Date.now();
+    }
+  }
   word.surface = surface;
   if (!word.docIds.includes(docId)) word.docIds.push(docId);
   word.lookupsByDoc[docId] = (word.lookupsByDoc[docId] || 0) + 1;
@@ -80,6 +102,14 @@ function getDueWords(docId = null, now = Date.now()) {
     && word.nextReview <= now
     && (!docId || word.docIds.includes(docId))
   );
+}
+
+function getTrackedWordCount() {
+  return Object.keys(getTrackerStore().trackedWords).length;
+}
+
+function getWordsNeedingLookupCount() {
+  return Object.values(getTrackerStore().trackedWords).filter((word) => !word.meaning).length;
 }
 
 function getLookupCount(docId) {

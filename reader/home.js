@@ -76,7 +76,15 @@ async function loadHome() {
   try {
     const store = getTrackerStore();
     home$("stat-words").textContent = store.exposedLemmas.length.toLocaleString();
+    home$("stat-tracked").textContent = getTrackedWordCount().toLocaleString();
     home$("stat-due").textContent = getDueWords().length.toLocaleString();
+    const needsLookup = getWordsNeedingLookupCount();
+    if (needsLookup) {
+      const status = document.createElement("p");
+      status.className = "muted";
+      status.textContent = `${needsLookup.toLocaleString()} saved ${needsLookup === 1 ? "word needs" : "words need"} a fresh lookup before a review meaning is available.`;
+      home$("home-progress-note").replaceChildren(status);
+    }
   } catch (err) {
     error.textContent = `Could not load learning progress: ${err.message}`;
     error.hidden = false;

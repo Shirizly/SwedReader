@@ -61,7 +61,9 @@ function clearActive() {
 }
 
 function entryFor(token) {
-  return (doc.glossary && doc.glossary[token.lemma + "|" + (token.pos || "")]) || {};
+  const glossary = doc.glossary || {};
+  const entry = glossary[token.lemma + "|" + (token.pos || "")] || glossary[token.lemma] || {};
+  return Array.isArray(entry) ? { dict: entry } : entry;
 }
 
 function renderPanel(sentence, sentenceEl, token, group) {
@@ -113,16 +115,15 @@ function selectWord(sentence, sentenceEl, index, tokenEls) {
   const token = sentence.tokens[index];
   const group = (sentence.groups || []).find((g) => g.token_ids.includes(index));
   const entry = entryFor(token);
-  const aligned = group ? group.in_context : token.in_context;
-  const check = group ? group.check : token.check;
-  const meaning = (check !== "weak" && check !== "wide" && aligned)
-    || entry.dict?.[0] || entry.mt || "";
+  const dictionaryMeaning = Array.isArray(entry.dict) ? entry.dict.join("; ") : "";
+  const machineMeaning = entry.mt || "";
   try {
     if (token.lemma) {
       recordWordCheck({
         lemma: token.lemma,
         surface: token.text,
-        meaning,
+        meaning: dictionaryMeaning || machineMeaning,
+        meaningSource: dictionaryMeaning ? "dictionary" : machineMeaning ? "machine translation" : "",
         docId: doc.id,
       });
     }

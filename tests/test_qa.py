@@ -141,6 +141,21 @@ def test_dictionary_falls_back_to_inflected_forms_and_surface(dic):
     assert dic.lookup("finnsinte", "NOUN") == []
 
 
+def test_dictionary_surface_form_resolves_modal_lemma_collision(tmp_path):
+    xml = tmp_path / "modal.xml"
+    xml.write_text("""<dictionary>
+<word class="vb" lang="sv" value="skola"><translation value="train, teach" /></word>
+<word lang="sv" value="skulle"><translation value="would, should" /></word>
+<word class="vb" lang="sv" value="ska"><translation value="shall, will, have to, must" />
+<paradigm><inflection value="skulle" /></paradigm></word>
+</dictionary>""", encoding="utf-8")
+    db_path = tmp_path / "modal.db"
+    assert dictionary.build(xml, db_path) == 3
+    modal_dictionary = dictionary.Dictionary(db_path)
+
+    assert modal_dictionary.lookup("skola", "AUX", "skulle") == ["would", "should"]
+
+
 def test_dictionary_rebuild_is_idempotent(tmp_path):
     xml = tmp_path / "d.xml"
     xml.write_text(XML, encoding="utf-8")

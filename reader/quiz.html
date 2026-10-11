@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Vocabulary review</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=5">
 </head>
 <body>
   <main>
@@ -14,6 +14,7 @@
     <section id="quiz" class="quiz-card" aria-live="polite">
       <p id="quiz-progress" class="muted"></p>
       <h2 id="quiz-prompt"></h2>
+      <p id="quiz-source" class="muted"></p>
       <button id="reveal-answer" class="button" type="button">Show meaning</button>
       <div id="quiz-answer" hidden>
         <p id="quiz-meaning" class="meaning"></p>
@@ -23,7 +24,7 @@
       </div>
     </section>
   </main>
-  <script src="tracker.js"></script>
-  <script src="quiz.js"></script>
+  <script src="tracker.js?v=5"></script>
+  <script src="quiz.js?v=5"></script>
 </body>
 </html>
