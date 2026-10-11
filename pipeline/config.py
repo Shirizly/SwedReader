@@ -5,6 +5,10 @@ from urllib.parse import urlparse
 import yaml
 
 ROOT = Path(__file__).resolve().parent.parent
+DATA = ROOT / "data"
+READER = ROOT / "reader"
+PUBLIC_CONTENT = READER / "content"
+PRIVATE_DATA = DATA / "private"
 DEFAULT_SOURCES = ROOT / "sources.yaml"
 
 

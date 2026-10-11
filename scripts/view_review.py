@@ -9,13 +9,16 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+from pipeline.config import PRIVATE_DATA, PUBLIC_CONTENT
 from pipeline.review import REVIEW_DIR, write_report
 
 
 def documents():
     found = {}
-    for lane in ("public", "private"):
-        for path in sorted((ROOT / "data" / lane).glob("*.json")):
+    for lane, directory in (("public", PUBLIC_CONTENT), ("private", PRIVATE_DATA)):
+        for path in sorted(directory.glob("*.json")):
+            if path.name == "index.json":
+                continue
             try:
                 data = json.loads(path.read_text(encoding="utf-8"))
             except (OSError, json.JSONDecodeError) as error:
@@ -34,7 +37,7 @@ def main():
     available = documents()
     if args.list or not args.document_id:
         if not available:
-            print("No processed documents found under data/public or data/private.")
+            print("No processed documents found under reader/content or data/private.")
             return 0
         print("Available documents:")
         for doc_id, (document, lane) in sorted(available.items()):

@@ -2,7 +2,7 @@
 
 The code in this repository is MIT licensed (see `LICENSE`).
 
-The **content** in `data/public/` and `reader/content/` (the processed texts, their tokenization, word
+The **content** in `reader/content/` (the processed texts, their tokenization, word
 alignments and machine translations) is derived from the sources listed in each document's `source_url`,
 `attribution` and `license` fields. Texts derived from Wikipedia are licensed under
 [Creative Commons Attribution-ShareAlike 4.0 International (CC BY-SA 4.0)](https://creativecommons.org/licenses/by-sa/4.0/).

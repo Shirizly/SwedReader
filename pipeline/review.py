@@ -6,9 +6,9 @@ import html
 import json
 from pathlib import Path
 
-from .config import ROOT
+from .config import PRIVATE_DATA
 
-REVIEW_DIR = ROOT / "data" / "private" / "review"
+REVIEW_DIR = PRIVATE_DATA / "review"
 ORDER = ("weak", "wide", "conflict", "diff")
 TITLES = {
     "weak": "Aligned only to articles/pronouns/prepositions (the reader ignores this meaning)",

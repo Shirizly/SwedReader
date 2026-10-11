@@ -51,5 +51,20 @@ def test_unlisted_and_stray_files_fail(tmp_path):
     assert any("not listed" in p for p in problems) and any("unexpected file" in p for p in problems)
 
 
+def test_referenced_wav_is_allowed_and_unreferenced_wav_is_rejected(tmp_path):
+    content_dir = tmp_path / "c"
+    write(content_dir, [doc(audio={
+        "url": "content/audio/a.mp3",
+        "sentences": [{"id": "s0", "start": 0, "end": 1}],
+    })])
+    audio_dir = content_dir / "audio"
+    audio_dir.mkdir()
+    (audio_dir / "a.mp3").write_bytes(b"audio")
+    assert check_reader_content(content_dir, SOURCES) == []
+
+    (audio_dir / "extra.mp3").write_bytes(b"audio")
+    assert any("unreferenced audio" in problem for problem in check_reader_content(content_dir, SOURCES))
+
+
 def test_committed_reader_content_is_publishable():
     assert check_reader_content(REAL_CONTENT) == []

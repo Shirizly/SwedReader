@@ -18,6 +18,7 @@ pipeline/                 Python processing pipeline and CLI
   review.py                Flagged-word HTML and JSON reports
   publish.py               Public publishing and local reader server
   guard.py                 Published-content safety check
+  tts.py                   Local Piper voice download and speech synthesis
 
 reader/                    Static HTML, CSS, and JavaScript application
   index.html               Library and learning dashboard
@@ -31,11 +32,12 @@ reader/                    Static HTML, CSS, and JavaScript application
 
 scripts/                   Standalone helper scripts
   align_debug.py           Inspect source/target word alignment
+  generate_audio.py        Synthesize a local WAV sample from a document
   view_review.py           List, regenerate, and open word-review reports
 
 tests/                     Offline pytest suite and fixtures
-data/public/               Generated public documents eligible for publishing
-data/private/              Local-only documents, models' source data, DBs, and reports
+reader/content/             Canonical public documents and audio served by the reader
+data/private/               Local-only documents, models' source data, DBs, and reports
 docs/                      Architecture, roadmap, user guide, and original plans
 .github/workflows/pages.yml  Public reader deployment and content guard
 ```
@@ -44,9 +46,9 @@ docs/                      Architecture, roadmap, user guide, and original plans
 
 1. `python -m pipeline run <url> [<url> ...]` resolves the source lane before fetching. `sources.yaml` defines publication policy; `pipeline/sources/` currently has extractors for Wikipedia and Project Runeberg.
 2. The pipeline tokenizes and segments Swedish text, translates complete sentences, aligns sentence words, and builds per-lemma/POS fallbacks from isolated machine translation and Folkets lexicon. QA compares alignments with those fallbacks and marks likely errors.
-3. The assembled document is schema-validated, written atomically to `data/public/` or `data/private/`, recorded in `data/private/pipeline.db`, and used to generate local HTML/JSON review reports in `data/private/review/`.
-4. `python -m pipeline publish` copies only eligible public documents into `reader/content/` and rebuilds `reader/content/index.json`. `python -m pipeline.guard` checks the published set.
-5. `python -m pipeline serve [port]` serves the static reader and exposes private documents through a separate `/content-private/` index, bound to localhost. The GitHub Pages workflow deploys `reader/` only.
+3. The assembled document is schema-validated, written atomically to `reader/content/` or `data/private/`, recorded in `data/private/pipeline.db`, and used to generate local HTML/JSON review reports in `data/private/review/`.
+4. `python -m pipeline publish` validates public documents and audio already in `reader/content/` and rebuilds `reader/content/index.json`. `python -m pipeline.guard` checks the published set.
+5. `python -m pipeline serve [port]` serves the static reader with byte-range support for audio seeking and exposes private documents through a separate `/content-private/` index, bound to localhost. The GitHub Pages workflow deploys `reader/` only.
 
 The main CLI also provides `publish`, `list`, `serve`, `build-dict`, and `review <document-id>`. The review command regenerates reports but does not launch a browser; `python scripts/view_review.py <document-id>` regenerates and opens one.
 
@@ -65,11 +67,13 @@ Meanings have distinct roles:
 
 The library reads the public `content/index.json`; the local server may also provide `content-private/index.json`. Reading a document records encountered lemmas and stories in browser `localStorage`. Selecting words records lookups and schedules Leitner reviews. This data is local to the browser profile and page origin; it is not sent to the pipeline.
 
-`data/private/` is git-ignored and must not be published. Public source and licence fields are checked during publishing and by the deployment guard. The web application is plain static HTML/CSS/JS with relative paths so it works under a GitHub Pages project subpath.
+`data/private/` is git-ignored and outside the deployable `reader/` tree; it must not be published. Public source and licence fields are checked during publishing and by the deployment guard. The web application is plain static HTML/CSS/JS with relative paths so it works under a GitHub Pages project subpath.
 
 ## Current boundaries
 
 - The reader and pipeline consume generated JSON; the deployed site does not run Python or translate on demand.
 - `sources.yaml` includes private-lane policy for sources that do not yet have extractors. Lane policy and extraction support are separate.
-- Audio synthesis, audio assets, and synchronized highlighting are not implemented.
+- `scripts/generate_audio.py` creates local Piper WAV samples under ignored `data/private/tts/`; with `--attach` it records exact sentence boundaries and writes compressed public tracks to `reader/content/audio/`.
+- The reader has a sticky playback bar with play/pause, stop, previous/next sentence, seeking, and a compact speed button that opens a tick-marked horizontal slider from 0.5× to 2.0× in 0.1 increments. It highlights and scrolls to sentences using Piper synthesis boundaries; there is no separate forced-aligner model.
+- Audio metadata reports each mapped sentence boundary and total document sentence count; the player displays track coverage if an excerpt is used.
 - Lemmatization and automatic word alignment are model-derived and can be wrong; generated content and review reports may need regeneration after pipeline logic or dictionary changes.

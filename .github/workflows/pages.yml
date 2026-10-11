@@ -3,7 +3,7 @@ name: Deploy reader to GitHub Pages
 on:
   push:
     branches: [main]
-    paths: ["reader/**", "sources.yaml", "pipeline/guard.py", "pipeline/config.py", ".github/workflows/pages.yml"]
+    paths: ["reader/**", "sources.yaml", "pipeline/**", "scripts/generate_audio.py", ".github/workflows/pages.yml"]
   workflow_dispatch:
 
 permissions:

@@ -4,11 +4,11 @@ import sys
 
 from . import db
 from .assemble import build_document, slugify, write_document
-from .config import ROOT, resolve_lane
-from .publish import DATA, publish, serve
+from .config import PRIVATE_DATA, PUBLIC_CONTENT, ROOT, resolve_lane
+from .publish import publish, serve
 from .sources import fetch
 
-DB_PATH = DATA / "private" / "pipeline.db"
+DB_PATH = PRIVATE_DATA / "pipeline.db"
 _models = {}
 
 
@@ -49,7 +49,8 @@ def run(url):
         nlp, translator, dictionary, lemmas = models()
         doc = build_document(url, lane_info, source.title, source.sections, nlp, translator, source.history_url,
                              author=source.author, dictionary=dictionary, lemmas=lemmas)
-        path, digest = write_document(doc, DATA / lane)
+        destination = PUBLIC_CONTENT if lane == "public" else PRIVATE_DATA
+        path, digest = write_document(doc, destination)
     except Exception as e:
         db.upsert_document(conn, **base, status="failed", error=f"{type(e).__name__}: {e}")
         raise
@@ -81,12 +82,13 @@ def build_dictionary():
 def review(doc_id):
     from .review import write_report
     for lane in ("public", "private"):
-        path = DATA / lane / f"{doc_id}.json"
+        directory = PUBLIC_CONTENT if lane == "public" else PRIVATE_DATA
+        path = directory / f"{doc_id}.json"
         if path.exists():
             report, n = write_report(json.loads(path.read_text(encoding="utf-8")))
             print(f"review report: {report.relative_to(ROOT)} ({n} flagged)")
             return 0
-    print(f"no document {doc_id!r} in data/public or data/private")
+    print(f"no document {doc_id!r} in reader/content or data/private")
     return 1
 
 

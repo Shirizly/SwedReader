@@ -17,7 +17,7 @@ Every document belongs to exactly one lane, determined solely by its source:
 - **Share-alike** means that what we publish derived from that text (the translated and annotated document JSON, which includes the machine translations) must itself be offered under the same licence (CC BY-SA 4.0), not under a more restrictive one. This applies to the content only, not to the reader's code, which can have its own licence. If Folkets lexikon is used, its glosses carry the same CC BY-SA obligation (to be verified when the dump is downloaded).
 - This is workable for a free public site, so it is built in: each document has `license` (SPDX-style id, e.g. `CC-BY-SA-4.0` or `public-domain`), `license_url`, `attribution`, and `history_url` fields; the reader shows an attribution footer for every document and a site-wide licence page; the repository includes a content licence file for `reader/content/`; and the publish step refuses any public document lacking these fields. (This is a practical reading of the licence, not legal advice.)
 
-Mechanism: a config file (`sources.yaml`) maps domains to a lane and licence/attribution text. The pipeline sets a `lane` field (`public` or `private`) on the document JSON and in the database log. Unknown domains default to `private` (default-deny) until explicitly added to the public list. Private output is written to a separate, git-ignored directory (`data/private/`); public output goes to `data/public/`. The upload step only reads `data/public/` and additionally re-checks the `lane` flag in each file.
+Mechanism: a config file (`sources.yaml`) maps domains to a lane and licence/attribution text. The pipeline sets a `lane` field (`public` or `private`) on the document JSON and in the database log. Unknown domains default to `private` (default-deny) until explicitly added to the public list. Private output is written to a separate, git-ignored directory (`data/private/`) outside the deployable reader tree; public output goes directly to `reader/content/`. The publish step re-checks the `lane` flag and required licence/attribution fields.
 
 ## Implementation order
 
@@ -31,7 +31,7 @@ Mechanism: a config file (`sources.yaml`) maps domains to a lane and licence/att
 
 ### 2. Set up the project and test baseline
 
-- Layout: `pipeline/` (package + CLI), `reader/` (static site), `tests/` with fixtures, `data/public/` (committed/published), `data/private/` (git-ignored), `sources.yaml`.
+- Layout: `pipeline/` (package + CLI), `reader/` (static site and canonical published content), `tests/` with fixtures, `data/private/` (git-ignored and local-only), `sources.yaml`.
 - Pin dependencies (`requests`, `beautifulsoup4`, `spacy`, `transformers`, `sentencepiece`, `torch`, `pyyaml`, `jsonschema`, `pytest`); document explicit model installs (`python -m spacy download sv_core_news_sm`; the OPUS-MT model downloads from Hugging Face on first explicit use). Ordinary tests must not download models or use the network.
 - **Test:** Fresh virtual environment from the documented setup; `pytest` passes with only the fixtures.
 - **Human test required:** Follow the setup instructions on a clean environment and report unclear or platform-specific steps.
@@ -91,7 +91,7 @@ Machine translation is the base for everything. Sentences are translated whole (
 ### 8. Assemble, validate, write, and log
 
 - Orchestration in a single `run(url)` function: resolve lane → fetch/extract → tokenize → word glosses → translate sentences → build document → validate against the JSON Schema → write → log.
-- Write to a temporary file in the destination directory, then `os.replace` into `data/<lane>/<id>.json`, where `<id>` is a stable slug from the URL; failed runs never overwrite a previous valid output.
+- Write to a temporary file in the destination directory, then `os.replace` into `reader/content/<id>.json` for public documents or `data/private/<id>.json` for private documents, where `<id>` is a stable slug from the URL; failed runs never overwrite a previous valid output.
 - Log: upsert one row into `documents` with source URL, domain, lane, `loaded_at`, `word_count`, output path, content hash, and status. A `python -m pipeline list` command prints the log.
 - Private-lane documents are written under `data/private/`, which is git-ignored and never added to the reader's index.
 - **Test:** Offline end-to-end test with stubbed fetcher and translator for a public and a private URL: assert correct output directory, `lane` field, DB row contents (including word count), deterministic serialization (same input → identical bytes), rerun upserts rather than duplicates, and a failure leaves earlier output intact.
@@ -99,7 +99,7 @@ Machine translation is the base for everything. Sentences are translated whole (
 
 ### 9. Upload (publish) public content only
 
-- `python -m pipeline publish`: reads only `data/public/`, skips any file whose `lane != "public"` (second check) or that lacks licence/attribution fields, copies the validated files to `reader/content/`, regenerates `reader/content/index.json`, and marks `published=1` in the log. Private documents are never copied.
+- `python -m pipeline publish`: validates public documents already in `reader/content/`, refuses any file whose `lane != "public"` or that lacks licence/attribution fields, removes unreferenced audio, regenerates `reader/content/index.json`, and marks `published=1` in the log. Private documents are never copied into the reader tree.
 - Local reader for both lanes: `python -m pipeline serve` runs a small local web server (standard-library `http.server`) that serves the same unmodified `reader/` files, plus `data/private/` mounted at `/content-private/` with its own generated `index.json`. The reader requests `content-private/index.json` after the public index and merges any documents found, marking them "private"; on GitHub Pages that request simply returns 404 and is ignored. Server binds to `127.0.0.1` only.
 - **Test (local):** serve test: with a public and a private document, the private one appears via the local server and not in `reader/content/`; Pages-like static serving of `reader/` alone shows only public documents without errors.
 - GitHub Actions workflow deploys the `reader/` directory to Pages (`actions/upload-pages-artifact` + `actions/deploy-pages`); no preprocessing dependencies in the workflow. Add a CI check that fails if any file under `reader/content/` has `lane: private`, or if a private-listed domain appears in any `source_url` there.
@@ -112,7 +112,10 @@ Machine translation is the base for everything. Sentences are translated whole (
 - Browser-local learning data records unique lemmas exposed, distinct words looked up, and stories read. A review page presents due words and schedules remembered answers with increasing Leitner intervals; story-filtered review uses the documents where each word has been looked up. Review meanings use all available dictionary glosses first and isolated machine translation second, never sentence alignment; cards identify which source supplied the meaning.
 - The reader shows a story-completion prompt with the number of lookups for that document and a link to its review queue. Learning data remains in the learner's browser and is not sent to the pipeline or server.
 - **Human test required:** Check the mobile dashboard, confirm private stories appear only in local mode, and verify that clearing browser storage removes local progress.
-- **Deferred:** TTS generation and synchronized audio highlighting are outside this extension's scope.
+- **TTS prototype:** `scripts/generate_audio.py` generates local WAV samples with Piper; `--attach` stores exact sentence boundaries in public document metadata and publishes compressed MP3 tracks.
+- The reader provides a sticky player bar with playback controls, a compact button that opens a tick-marked horizontal speed slider, sentence highlighting, and automatic scrolling. Speed ranges from 0.5× to 2.0× in 0.1 increments. Sentence boundaries come from per-sentence TTS synthesis rather than a forced aligner.
+- **Human test required:** Listen to the published clip and assess pronunciation, playback speed, sentence synchronization, and scrolling on desktop and phone.
+- All currently published public documents have full sentence-timed audio tracks.
 
 ## Deferred (after the Stockholm slice works)
 

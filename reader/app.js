@@ -3,6 +3,9 @@
 const $ = (id) => document.getElementById(id);
 let doc = null;
 let activeEls = [];
+let sentenceElements = new Map();
+let audioTimeline = [];
+let activeAudioSentence = -1;
 
 function el(tag, props = {}, text) {
   const e = document.createElement(tag);
@@ -33,6 +36,200 @@ function validate(d) {
       }
     }
   }
+}
+
+function clearAudio() {
+  const player = $("audio-player");
+  player.pause();
+  player.removeAttribute("src");
+  player.load();
+  $("audio-player-bar").hidden = true;
+  ["audio-previous", "audio-play", "audio-stop", "audio-next", "audio-seek", "audio-speed", "audio-speed-toggle"]
+    .forEach((id) => { $(id).disabled = true; });
+  $("audio-speed-popover").hidden = true;
+  $("audio-speed-toggle").setAttribute("aria-expanded", "false");
+  audioTimeline = [];
+  activeAudioSentence = -1;
+  sentenceElements.forEach((sentenceEl) => sentenceEl.classList.remove("audio-active"));
+}
+
+function updateAudioSpeedLabel(rate) {
+  const label = `${rate.toFixed(1)}×`;
+  $("audio-speed-value").textContent = label;
+  $("audio-speed-toggle").textContent = `Speed ${label} ▾`;
+  $("audio-speed-toggle").setAttribute("aria-label", `Playback speed: ${label}`);
+}
+
+function formatAudioTime(seconds) {
+  if (!Number.isFinite(seconds) || seconds < 0) return "0:00";
+  const wholeSeconds = Math.floor(seconds);
+  return `${Math.floor(wholeSeconds / 60)}:${String(wholeSeconds % 60).padStart(2, "0")}`;
+}
+
+function setActiveAudioSentence(index, scroll = false) {
+  if (index === activeAudioSentence) {
+    if (scroll && index >= 0) {
+      const sentenceEl = sentenceElements.get(audioTimeline[index].id);
+      if (sentenceEl) sentenceEl.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+    return;
+  }
+  if (activeAudioSentence >= 0) {
+    const previous = sentenceElements.get(audioTimeline[activeAudioSentence].id);
+    if (previous) previous.classList.remove("audio-active");
+  }
+  activeAudioSentence = index;
+  if (index < 0 || index >= audioTimeline.length) {
+    $("audio-status").textContent = "";
+    return;
+  }
+  const entry = audioTimeline[index];
+  const sentenceEl = sentenceElements.get(entry.id);
+  if (sentenceEl) {
+    sentenceEl.classList.add("audio-active");
+    if (scroll) sentenceEl.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+  const total = doc.audio.total_sentences || audioTimeline.length;
+  const coverage = audioTimeline.length < total
+    ? ` (audio for ${audioTimeline.length} of ${total} sentences)`
+    : "";
+  $("audio-status").textContent = `Sentence ${index + 1} of ${audioTimeline.length}${coverage}`;
+}
+
+function audioSentenceAt(time) {
+  let low = 0;
+  let high = audioTimeline.length - 1;
+  let previous = -1;
+  while (low <= high) {
+    const middle = Math.floor((low + high) / 2);
+    const entry = audioTimeline[middle];
+    if (time + 0.05 < entry.start) {
+      high = middle - 1;
+    } else if (time > entry.end + 0.05) {
+      previous = middle;
+      low = middle + 1;
+    } else {
+      return middle;
+    }
+  }
+  return previous;
+}
+
+function updateAudioPosition() {
+  const player = $("audio-player");
+  const duration = Number.isFinite(player.duration) ? player.duration : 0;
+  $("audio-seek").max = String(duration);
+  $("audio-seek").value = String(player.currentTime || 0);
+  $("audio-time").textContent = `${formatAudioTime(player.currentTime)} / ${formatAudioTime(duration)}`;
+  const index = audioSentenceAt(player.currentTime);
+  setActiveAudioSentence(index, index !== activeAudioSentence && !player.paused);
+}
+
+function setupAudio(documentData) {
+  clearAudio();
+  const audio = documentData.audio;
+  if (!audio) return;
+  const validUrl = typeof audio.url === "string"
+    && audio.url.startsWith("content/audio/")
+    && !audio.url.split("/").includes("..");
+  if (!validUrl || !Array.isArray(audio.sentences) || !audio.sentences.length) {
+    $("audio-player-bar").hidden = false;
+    $("audio-status").textContent = "Audio metadata is unavailable for this document.";
+    return;
+  }
+  let previousEnd = 0;
+  for (const entry of audio.sentences) {
+    if (typeof entry.id !== "string"
+        || !sentenceElements.has(entry.id)
+        || !Number.isFinite(entry.start)
+        || !Number.isFinite(entry.end)
+        || entry.start < previousEnd
+        || entry.end <= entry.start) {
+      $("audio-player-bar").hidden = false;
+      $("audio-status").textContent = "Audio sentence timings are invalid.";
+      return;
+    }
+    previousEnd = entry.end;
+  }
+  audioTimeline = audio.sentences;
+  ["audio-previous", "audio-play", "audio-stop", "audio-next", "audio-seek", "audio-speed", "audio-speed-toggle"]
+    .forEach((id) => { $(id).disabled = false; });
+  const player = $("audio-player");
+  player.src = audio.url;
+  player.playbackRate = 1;
+  $("audio-speed").value = "1";
+  updateAudioSpeedLabel(1);
+  $("audio-player-bar").hidden = false;
+  $("audio-status").textContent = audioTimeline.length < (audio.total_sentences || audioTimeline.length)
+    ? `Audio for the first ${audioTimeline.length} sentences.`
+    : "Ready to play.";
+  player.load();
+}
+
+function wireAudioControls() {
+  const player = $("audio-player");
+  player.addEventListener("timeupdate", updateAudioPosition);
+  player.addEventListener("loadedmetadata", updateAudioPosition);
+  player.addEventListener("durationchange", updateAudioPosition);
+  player.addEventListener("play", () => { $("audio-play").textContent = "❚❚"; $("audio-play").setAttribute("aria-label", "Pause"); });
+  player.addEventListener("pause", () => { $("audio-play").textContent = "▶"; $("audio-play").setAttribute("aria-label", "Play"); });
+  player.addEventListener("ended", updateAudioPosition);
+  player.addEventListener("error", () => { $("audio-status").textContent = "Could not load this audio file."; });
+  $("audio-play").addEventListener("click", () => {
+    if (player.paused) {
+      player.play().catch((error) => { $("audio-status").textContent = `Could not play audio: ${error.message}`; });
+    } else {
+      player.pause();
+    }
+  });
+  $("audio-stop").addEventListener("click", () => {
+    player.pause();
+    player.currentTime = 0;
+    setActiveAudioSentence(-1);
+    updateAudioPosition();
+  });
+  $("audio-previous").addEventListener("click", () => seekAudioSentence(Math.max(0, audioSentenceAt(player.currentTime) - 1)));
+  $("audio-next").addEventListener("click", () => seekAudioSentence(Math.min(audioTimeline.length - 1, audioSentenceAt(player.currentTime) + 1)));
+  $("audio-seek").addEventListener("input", () => {
+    player.currentTime = Number($("audio-seek").value);
+    updateAudioPosition();
+  });
+  $("audio-speed").addEventListener("input", () => {
+    const rate = Number($("audio-speed").value);
+    player.playbackRate = rate;
+    updateAudioSpeedLabel(rate);
+  });
+  $("audio-speed-toggle").addEventListener("click", () => {
+    const popover = $("audio-speed-popover");
+    const open = popover.hidden;
+    popover.hidden = !open;
+    $("audio-speed-toggle").setAttribute("aria-expanded", String(open));
+    if (open) $("audio-speed").focus();
+  });
+  document.addEventListener("click", (event) => {
+    if (!$("audio-speed-control").contains(event.target)) {
+      $("audio-speed-popover").hidden = true;
+      $("audio-speed-toggle").setAttribute("aria-expanded", "false");
+    }
+  });
+  document.addEventListener("keydown", (event) => {
+    const popover = $("audio-speed-popover");
+    if (event.key === "Escape" && !popover.hidden) {
+      popover.hidden = true;
+      $("audio-speed-toggle").setAttribute("aria-expanded", "false");
+      $("audio-speed-toggle").focus();
+    }
+  });
+}
+
+function seekAudioSentence(index) {
+  if (index < 0 || index >= audioTimeline.length) return;
+  const player = $("audio-player");
+  const resume = !player.paused;
+  player.currentTime = audioTimeline[index].start;
+  setActiveAudioSentence(index, true);
+  if (resume) player.play().catch((error) => { $("audio-status").textContent = `Could not play audio: ${error.message}`; });
+  updateAudioPosition();
 }
 
 async function loadIndex() {
@@ -140,6 +337,7 @@ function selectWord(sentence, sentenceEl, index, tokenEls) {
 
 function renderSentence(sentence) {
   const sEl = el("span", { className: "sentence" });
+  if (sentence.id) sentenceElements.set(sentence.id, sEl);
   const tokenEls = [];
   sentence.tokens.forEach((t, i) => {
     if (t.is_word) {
@@ -162,7 +360,9 @@ function renderSentence(sentence) {
 
 function renderDocument(d) {
   validate(d);
+  clearAudio();
   doc = d;
+  sentenceElements = new Map();
   $("error").hidden = true;
   const title = $("doc-title");
   title.replaceChildren();
@@ -178,6 +378,7 @@ function renderDocument(d) {
     for (const s of p.sentences) pe.append(renderSentence(s));
     text.append(pe);
   }
+  setupAudio(d);
   const att = $("attribution");
   att.replaceChildren();
   att.append(document.createTextNode(`Source: ${(d.attribution || d.source_url || "").replace(/[.\s]+$/, "")}. Licence: ${d.license || "unknown"}. Words and sentences were tokenized and machine-translated. `));
@@ -218,6 +419,7 @@ async function init() {
     }
     select.addEventListener("change", () => openDoc(select.value));
     document.addEventListener("keydown", (ev) => { if (ev.key === "Escape") closePanel(); });
+    wireAudioControls();
     if (!docs.length) {
       showError("No documents available.");
       return;
